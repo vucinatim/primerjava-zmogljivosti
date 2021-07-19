@@ -1,9 +1,47 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, SafeAreaView, FlatList, StatusBar, Image } from 'react-native';
 
 const APP_BAR_HEIGHT = 60 + StatusBar.currentHeight;
 
 export default function App() {
+
+  let [frameTimeState, setFrameTimeState] = useState({
+    fps: 0,
+    // better use performance.now()
+    // but some static generators like gatsby
+    // might have problems with that
+    lastStamp: Date.now(),
+    framesCount: 0
+  });
+
+  useEffect(() => {
+    // NOTE: timeout is here
+    // cuz requestAnimationFrame is deferred
+    // and to prevent setStates on unmounted
+    let timeout = null;
+
+    requestAnimationFrame(() => timeout = setTimeout(() => {
+
+      const currentStamp = Date.now();
+      const shouldSetState = currentStamp - frameTimeState.lastStamp > 1000;
+
+      const newFramesCount = frameTimeState.framesCount + 1;
+
+      if (shouldSetState) {
+        setFrameTimeState({
+          fps: frameTimeState.framesCount,
+          lastStamp: currentStamp,
+          framesCount: 0,
+        });
+      } else {
+        setFrameTimeState({
+          ...frameTimeState,
+          framesCount: newFramesCount,
+        });
+      }
+    }, 0));
+    return () => timeout && clearTimeout(timeout);
+  }, [frameTimeState])
 
   const entries = Array.from(Array(1000).keys())
 
@@ -23,6 +61,7 @@ export default function App() {
         shadowRadius: 2,
         elevation: 10,
       }}>
+        <Text>{frameTimeState.fps} fps</Text>
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: 'white' }}>Scroll Test React Native</Text>
       </View>
       <FlatList
